@@ -153,6 +153,10 @@ defmodule JexonTest do
         }
       }
     }, {1,2,3}]
+
+    {:ok, json} = Jexon.to_json(data)
+
+    assert Jexon.from_json(json) === {:ok, data}
   end
 
 end

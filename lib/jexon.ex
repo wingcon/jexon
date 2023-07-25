@@ -66,51 +66,15 @@ defmodule Jexon do
   @spec to_json(data :: struct() | map(), opts :: keyword()) ::
           {:ok, json :: String.t()} | {:error, Jason.EncodeError.t() | Exception.t()}
   def to_json(data, opts \\ [])
-
-  def to_json(data, opts) when is_map(data) or is_struct(data) do
+  def to_json(data, opts) do
     with_type_info = Keyword.get(opts, :with_type_info, true)
-
-    data
-    |> to_map(opts)
-    |> then(fn
-      map when with_type_info ->
-        map
-        |> Enum.map(fn {key, value} -> {key, prepare_value_for_json_encoding(value)} end)
-        |> Map.new()
-
-      map ->
-        map
-    end)
-    |> Jason.encode()
-  end
-
-  def to_json(data, opts) when is_list(data) do
-    with_type_info = Keyword.get(opts, :with_type_info, true)
-
     data =
       if with_type_info do
-        Enum.map(data, &prepare_value_for_json_encoding/1)
-      else
-        Jason.encode(data)
-      end
-
-    Jason.encode(data)
-  end
-
-  def to_json(data, opts) when is_tuple(data) or is_atom(data) do
-    with_type_info = Keyword.get(opts, :with_type_info, true)
-
-    data =
-      if with_type_info do
-        prepare_value_for_json_encoding(data)
+        prepare_value_for_json_encoding(data, opts)
       else
         data
       end
 
-    Jason.encode(data)
-  end
-
-  def to_json(data, _) do
     Jason.encode(data)
   end
 
@@ -141,32 +105,36 @@ defmodule Jexon do
     end
   end
 
-  defp prepare_value_for_json_encoding(value) when is_tuple(value) do
-    ~w(__tuple__) ++ (Tuple.to_list(value) |> Enum.map(&prepare_value_for_json_encoding/1))
+  defp prepare_value_for_json_encoding(value, opts) when is_map(value) do
+    value
+    |> to_map(opts)
+    |> Enum.map(fn
+      {key, val} -> {key, prepare_value_for_json_encoding(val, opts)} end)
+    |> Map.new()
   end
 
-  defp prepare_value_for_json_encoding(nil) do
+  defp prepare_value_for_json_encoding(value, opts) when is_list(value) do
+    value
+    |> Enum.map(&prepare_value_for_json_encoding(&1, opts))
+  end
+
+  defp prepare_value_for_json_encoding(value, opts) when is_tuple(value) do
+    ~w(__tuple__) ++ (Tuple.to_list(value) |> Enum.map(&prepare_value_for_json_encoding(&1, opts)))
+  end
+
+  defp prepare_value_for_json_encoding(value, _) when is_nil(value) do
     nil
   end
 
-  defp prepare_value_for_json_encoding(value) when is_boolean(value) do
+  defp prepare_value_for_json_encoding(value, _) when is_boolean(value) do
     value
   end
 
-  defp prepare_value_for_json_encoding(value) when is_atom(value) do
+  defp prepare_value_for_json_encoding(value, _) when is_atom(value) do
     ~w(__atom__) ++ [to_string(value)]
   end
 
-  defp prepare_value_for_json_encoding(value) when is_map(value) do
-    Enum.map(value, fn {key, val} -> {key, prepare_value_for_json_encoding(val)} end) |> Map.new()
-  end
-
-  defp prepare_value_for_json_encoding(value) when is_list(value) do
-    value
-    |> Enum.map(&prepare_value_for_json_encoding/1)
-  end
-
-  defp prepare_value_for_json_encoding(value) do
+  defp prepare_value_for_json_encoding(value, _) do
     value
   end
 
