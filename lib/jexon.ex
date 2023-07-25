@@ -48,7 +48,7 @@ defmodule Jexon do
   end
 
   @doc """
-  Returns JSON of any given map or struct.
+  Returns JSON of any given datatype
 
   ## Options
   - `with_struct_info`, `boolean`, default: `true`
@@ -63,7 +63,7 @@ defmodule Jexon do
       iex> Jexon.to_json(data, with_type_info: true)
       {:ok, ~s/{\"bar\":[\"__atom__\",\"lol\"],\"baz\":[\"__tuple__\",2],\"foo\":1}/}
   """
-  @spec to_json(data :: struct() | map(), opts :: keyword()) ::
+  @spec to_json(data :: any(), opts :: keyword()) ::
           {:ok, json :: String.t()} | {:error, Jason.EncodeError.t() | Exception.t()}
   def to_json(data, opts \\ [])
   def to_json(data, opts) do
@@ -79,14 +79,14 @@ defmodule Jexon do
   end
 
   @doc """
-  Returns struct or map on given JSON and cast back elixir types
+  Returns (casted) value on given JSON
 
   ## Options
   - `raw`, `boolean`, default: `false`
     - perform no type casting and keep keys as strings
   """
   @spec from_json(json :: String.t(), opts :: keyword()) ::
-          {:ok, struct() | map()} | {:error, Jason.DecodeError.t()}
+          {:ok, any()} | {:error, Jason.DecodeError.t()}
   def from_json(json, opts \\ [])
 
   def from_json(json, opts) do
