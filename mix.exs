@@ -39,7 +39,7 @@ defmodule Jexon.MixProject do
     [
       files: ["lib", "mix.exs", "README*", "LICENSE*"],
       maintainers: "wingcon",
-      licences: ~w(MIT),
+      licenses: ~w(MIT),
       links: %{"Github" => "https://github.com/wingcon/jexon"}
     ]
   end
