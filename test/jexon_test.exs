@@ -11,13 +11,13 @@ defmodule JexonTest do
   end
 
   test "map to json" do
-    data = %{foo: 1, baz: 2, bar: 3}
-    assert Jexon.to_json(data) === Jason.encode(data)
+    assert Jexon.to_json(%{foo: 1, baz: 2, bar: 3}) === {:ok, ~S({"__atom__:bar":3,"__atom__:baz":2,"__atom__:foo":1})}
+    assert Jexon.to_json(%{"foo" => 1, "baz" => 2, "bar" => 3}) === {:ok, ~S({"bar":3,"baz":2,"foo":1})}
   end
 
   test "map from json" do
-    data = ~S({"foo": 1, "baz": 2, "bar": 3})
-    assert Jexon.from_json(data) === {:ok, %{foo: 1, baz: 2, bar: 3}}
+    assert Jexon.from_json(~S({"foo": 1, "baz": 2, "bar": 3})) === {:ok, %{"foo" => 1, "baz" => 2, "bar" => 3}}
+    assert Jexon.from_json(~S({"__atom__:foo": 1,"__atom__:baz": 2,"__atom__:bar": 3})) === {:ok, %{foo: 1, baz: 2, bar: 3}}
   end
 
   test "list to json" do
@@ -89,12 +89,13 @@ defmodule JexonTest do
 
     assert Jexon.to_map(data) === %{"foo" => "a", "baz" => "b", "bar" => "c", "__struct__" => Demo}
     assert Jexon.to_map(data, with_struct_info: false) === %{"foo" => "a", "baz" => "b", "bar" => "c"}
+    assert Jexon.to_map(data, keep_key_identity: true) === %{"__atom__:foo" => "a", "__atom__:baz" => "b", "__atom__:bar" => "c", "__atom__:__struct__" => JexonTest.Demo}
   end
 
   test "struct to json" do
     data = %Demo{foo: "a", baz: "b", bar: "c"}
 
-    assert Jexon.to_json(data) ===  {:ok, "{\"__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"bar\":\"c\",\"baz\":\"b\",\"foo\":\"a\"}"}
+    assert Jexon.to_json(data) ===  {:ok, "{\"__atom__:__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"__atom__:bar\":\"c\",\"__atom__:baz\":\"b\",\"__atom__:foo\":\"a\"}"}
   end
 
   test "nested struct to/from json" do
@@ -116,7 +117,7 @@ defmodule JexonTest do
       }
     }
 
-    expected_json = "{\"__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"bar\":{\"__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"bar\":{\"__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"bar\":{\"__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"bar\":9,\"baz\":8,\"foo\":7},\"baz\":6,\"foo\":5},\"baz\":4,\"foo\":3},\"baz\":2,\"foo\":1}"
+    expected_json= "{\"__atom__:__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"__atom__:bar\":{\"__atom__:__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"__atom__:bar\":{\"__atom__:__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"__atom__:bar\":{\"__atom__:__struct__\":[\"__atom__\",\"Elixir.JexonTest.Demo\"],\"__atom__:bar\":9,\"__atom__:baz\":8,\"__atom__:foo\":7},\"__atom__:baz\":6,\"__atom__:foo\":5},\"__atom__:baz\":4,\"__atom__:foo\":3},\"__atom__:baz\":2,\"__atom__:foo\":1}"
 
     assert Jexon.to_json(data) === {:ok, expected_json}
     assert Jexon.from_json(expected_json) === {:ok, data}

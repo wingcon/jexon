@@ -4,11 +4,13 @@ defmodule Jexon do
   """
 
   @doc """
-  Returns a string map of the struct or atom map
+  Returns a map of the struct or atom map but keeps the key identity
 
   ## Options
   - `with_struct_info`, `boolean`, default: `true`
     - includes `__struct__` key
+  - `keep_key_identity`, `boolean`, default: `false`
+    - encodes atom type if key is an atom
 
   ## Example Usage
 
@@ -30,15 +32,19 @@ defmodule Jexon do
         "__struct__" => DateTime
       }
   """
+
+  @atom_prefix "__atom__:"
+
   @spec to_map(data :: struct() | map(), opts :: keyword()) :: map()
   def to_map(data, opts \\ [])
 
   def to_map(data, opts) do
     with_struct_info = Keyword.get(opts, :with_struct_info, true)
+    keep_key_identity = Keyword.get(opts, :keep_key_identity, false)
 
     data
     |> Map.to_list()
-    |> Enum.map(&stringify_keys/1)
+    |> Enum.map(& stringify_keys(&1, keep_key_identity))
     |> Enum.reject(fn {key, _} -> key == "__struct__" and not with_struct_info end)
     |> Enum.map(fn
       {key, value} when is_map(value) or is_struct(value) -> {key, to_map(value, opts)}
@@ -61,7 +67,7 @@ defmodule Jexon do
 
       iex> data = %{foo: 1, baz: {2}, bar: :lol}
       iex> Jexon.to_json(data, with_type_info: true)
-      {:ok, ~s/{\"bar\":[\"__atom__\",\"lol\"],\"baz\":[\"__tuple__\",2],\"foo\":1}/}
+      {:ok, ~s/{\"__atom__:bar\":[\"__atom__\",\"lol\"],\"__atom__:baz\":[\"__tuple__\",2],\"__atom__:foo\":1}/}
   """
   @spec to_json(data :: any(), opts :: keyword()) ::
           {:ok, json :: String.t()} | {:error, Jason.EncodeError.t() | Exception.t()}
@@ -92,7 +98,7 @@ defmodule Jexon do
   def from_json(json, opts) do
     raw = Keyword.get(opts, :raw, false)
 
-    case Jason.decode(json, keys: :atoms) do
+    case Jason.decode(json) do
       {:error, _} = err ->
         err
 
@@ -107,7 +113,7 @@ defmodule Jexon do
 
   defp prepare_value_for_json_encoding(value, opts) when is_map(value) do
     value
-    |> to_map(opts)
+    |> to_map(Keyword.merge(opts, keep_key_identity: true))
     |> Enum.map(fn
       {key, val} -> {key, prepare_value_for_json_encoding(val, opts)} end)
     |> Map.new()
@@ -138,7 +144,16 @@ defmodule Jexon do
     value
   end
 
-  defp stringify_keys({key, val}), do: {to_string(key), val}
+  defp stringify_keys({key, val}, _keep_key_identity = true) do
+    if is_atom(key) do
+      {@atom_prefix <> to_string(key), val}
+    else
+      {key, val}
+    end
+  end
+  defp stringify_keys({key, val}, _keep_key_identity = false) do
+    {to_string(key), val}
+  end
 
   defp cast_type_back(["__tuple__" | rest]) do
     rest
@@ -152,7 +167,11 @@ defmodule Jexon do
 
   defp cast_type_back(value) when is_map(value) do
     value
-    |> Enum.map(fn {key, val} -> {key, cast_type_back(val)} end)
+    |> Enum.map(fn
+      {@atom_prefix <> key, val} ->
+        {String.to_atom(key), cast_type_back(val)}
+      {key, val} -> {key, cast_type_back(val)}
+    end)
     |> Map.new()
     |> cast_struct()
   end
