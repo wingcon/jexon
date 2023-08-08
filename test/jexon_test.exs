@@ -160,4 +160,44 @@ defmodule JexonTest do
     assert Jexon.from_json(json) === {:ok, data}
   end
 
+  @tag :skip
+  test "tuples as keys" do
+    data = %{{1,2,3} => 1, {4,5,6} => 2}
+    expected_json = ~S/{"__tuple__:1,2,3": 1, "__tuple__:4,5,6": 2}/
+    assert Jexon.to_json(data) === {:ok, expected_json}
+    assert Jexon.from_json(expected_json) == {:ok, data}
+  end
+
+  @tag :skip
+  test "string tuples as keys with escape" do
+    data = %{{"\"1\"","2","3"} => 1, {4,5,6} => 2}
+    expected_json = ~S/{"__tuple__:\"\\"1\\"\",\"2\",\"3\"": 1, "__tuple__:4,5,6": 2}/
+    assert Jexon.to_json(data) === {:ok, expected_json}
+    assert Jexon.from_json(expected_json) == {:ok, data}
+  end
+
+  @tag :skip
+  test "nested tuples as keys" do
+    data = %{{:foo, :baz, {:bar, :ban}} => 1}
+    expected_json = ~S/{"__tuple__:__atom__:foo,__atom__:baz,__tuple__:__atom__:bar,__atom__:ban": 1}/
+    assert Jexon.to_json(data) === {:ok, expected_json}
+    assert Jexon.from_json(expected_json) == {:ok, data}
+  end
+
+  @tag :skip
+  test "lists as keys" do
+    data = %{[1,2,3] => :foo}
+    expected_json = ~S/{"__list__:1,2,3": ["__atom__", "foo"]}/
+    assert Jexon.to_json(data) === {:ok, expected_json}
+    assert Jexon.from_json(expected_json) == {:ok, data}
+  end
+
+  @tag :skip
+  test "map as keys" do
+    data = %{%{foo: 1, baz: 2, bar: 3} => :foo}
+    #expected_json = ~S/{"__map__:": ["__atom__", "foo"]/
+    # assert Jexon.to_json(data) === {:ok, expected_json}
+    # assert Jexon.from_json(expected_json) == {:ok, data}
+  end
+
 end
