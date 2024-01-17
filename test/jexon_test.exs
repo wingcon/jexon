@@ -194,7 +194,7 @@ defmodule JexonTest do
 
   @tag :skip
   test "map as keys" do
-    data = %{%{foo: 1, baz: 2, bar: 3} => :foo}
+    _data = %{%{foo: 1, baz: 2, bar: 3} => :foo}
     #expected_json = ~S/{"__map__:": ["__atom__", "foo"]/
     # assert Jexon.to_json(data) === {:ok, expected_json}
     # assert Jexon.from_json(expected_json) == {:ok, data}

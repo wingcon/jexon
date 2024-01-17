@@ -97,7 +97,7 @@ defmodule Jexon do
 
   def from_json(json, opts) do
     raw = Keyword.get(opts, :raw, false)
-    json = String.replace(json, ~r/[\s|\\]/, "")
+    json = String.replace(json, ~r/[\\]/, "")
     case Jason.decode(json) do
       {:error, _} = err ->
         err
